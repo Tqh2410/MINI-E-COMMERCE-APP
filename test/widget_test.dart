@@ -1,0 +1,29 @@
+// This is a basic Flutter widget test.
+//
+// To perform an interaction with a widget in your test, use the WidgetTester
+// utility in the flutter_test package. For example, you can send tap and scroll
+// gestures. You can also use WidgetTester to find child widgets in the widget
+// tree, read text, and verify that the values of widget properties are correct.
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+
+import 'package:mini_e_commerce_app/main.dart';
+import 'package:mini_e_commerce_app/providers/cart_provider.dart';
+
+void main() {
+  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+    // Build app with a CartProvider instance.
+    final cartProvider = CartProvider();
+    await tester.pumpWidget(
+      ChangeNotifierProvider<CartProvider>.value(
+        value: cartProvider,
+        child: MyApp(cartProvider: cartProvider),
+      ),
+    );
+
+    // Basic smoke test: Home screen is shown.
+    expect(find.text('Gợi ý hôm nay'), findsOneWidget);
+  });
+}
