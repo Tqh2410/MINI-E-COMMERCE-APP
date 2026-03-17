@@ -19,85 +19,125 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Auto play nhẹ nhàng giống slider trên các sàn TMĐT
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAutoPlay();
+    });
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
   }
 
+  void _startAutoPlay() {
+    // Dùng Future.loop đơn giản thay vì Timer để tránh leak khi dispose
+    Future<void>.delayed(const Duration(seconds: 4)).then((_) {
+      if (!mounted || !_pageController.hasClients) return;
+      final next = (_current + 1) % _colors.length;
+      _pageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+      _startAutoPlay();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 150,
-      child: Column(
+      height: 180,
+      child: Stack(
         children: [
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: _colors.length,
-              onPageChanged: (index) {
-                setState(() => _current = index);
-              },
-              itemBuilder: (context, index) {
-                return AnimatedBuilder(
-                  animation: _pageController,
-                  builder: (context, child) {
-                    double value = 1.0;
-                    if (_pageController.position.haveDimensions) {
-                      final page = _pageController.page ?? _current.toDouble();
-                      value = page - index;
-                      value = (1 - (value.abs() * 0.2)).clamp(0.8, 1.0) as double;
-                    }
-                    return Center(
-                      child: SizedBox(
-                        height: Curves.easeOut.transform(value) * 140,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 6),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(
-                        colors: [
-                          _colors[index],
-                          _colors[index].withValues(alpha: 0.7),
-                        ],
-                      ),
+          PageView.builder(
+            controller: _pageController,
+            itemCount: _colors.length,
+            onPageChanged: (index) {
+              setState(() => _current = index);
+            },
+            itemBuilder: (context, index) {
+              return AnimatedBuilder(
+                animation: _pageController,
+                builder: (context, child) {
+                  double value = 1.0;
+                  if (_pageController.hasClients &&
+                      _pageController.position.haveDimensions) {
+                    final page = _pageController.page ?? _current.toDouble();
+                    final diff = (page - index).abs();
+                    value = (1 - diff * 0.2).clamp(0.85, 1.0);
+                  }
+                  final scale = Curves.easeOut.transform(value);
+                  return Center(
+                    child: Transform.scale(
+                      scale: scale,
+                      child: child,
                     ),
-                    child: const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text(
-                          'Siêu sale giảm đến 50%',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      colors: [
+                        _colors[index],
+                        _colors[index].withValues(alpha: 0.7),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        'Siêu sale giảm đến 50%',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              _colors.length,
-              (index) => Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color:
-                      _current == index ? Colors.orange : Colors.grey.shade400,
                 ),
+              );
+            },
+          ),
+          Positioned(
+            bottom: 10,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                _colors.length,
+                (index) {
+                  final isActive = index == _current;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut,
+                    width: isActive ? 12 : 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      color: isActive
+                          ? Colors.orange
+                          : Colors.grey.shade400,
+                    ),
+                  );
+                },
               ),
             ),
           ),
